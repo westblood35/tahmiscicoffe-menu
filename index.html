@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>tahmisçi coffee &amp; roastery - digital menu</title>
+
+  <!-- menu data -->
+  <script src="menu-data.js"></script>
+
+  <!-- google fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet"/>
+
+  <!-- tailwind -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+           brand: {
+              gold: "#b88a63",   // Warm Caramel/Tan from active tab
+              dark: "#241611",   // Deep chocolate background
+              surface: "#35261f", // Slightly lighter brown for cards/inputs
+              muted: "#a39a93",  // Muted gray-brown text for descriptions
+              textLight: "#f5f5f5" // Off-white for readability
+            }
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0c0c0c;
+      color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* watermark */
+    .bg-watermark{
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: .03;
+      width: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .border-white\/5{
+      border-color: rgb(180 139 103) !important;
+}
+    
+    .tab-active {
+      background-color: #b48b67 !important;
+      color: #0c0c0c !important;
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: visible;
+      transition: max-height 0.3s ease-out;
+    }
+    .accordion-open .accordion-content { max-height: 20000px; }
+
+    /* scroll top btn anim */
+    #scrollTopBtn{
+      transform: translateY(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all .25s ease;
+    }
+    #scrollTopBtn.show{
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+
+<body class="font-sans flex flex-col min-h-screen">
+
+  <!-- watermark logo (local) -->
+  <img alt="tahmisçi watermark" class="bg-watermark" src="images/logo_green.png"/>
+
+  <!-- sticky header -->
+  <header class="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-md border-b border-brand-gold/20">
+    <div class="flex flex-col items-center pt-4 pb-2 px-4">
+      <div class="text-center mb-4">
+        <h1 class="font-serif text-2xl tracking-[0.2em] text-brand-gold uppercase">tahmisçi</h1>
+        <p class="text-[10px] tracking-[0.3em] text-brand-gold/80 uppercase">coffee &amp; roastery</p>
+      </div>
+
+      <!-- search -->
+      <!-- <div class="w-full mb-4 px-2">
+        <div class="relative">
+          <input id="searchInput"
+            class="w-full bg-brand-surface border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-brand-gold text-white placeholder-brand-muted"
+            placeholder="ürün ara..."
+            type="text"
+          />
+          <svg class="absolute left-3 top-2.5 w-4 h-4 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="m21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </div>
+      </div> -->
+
+      <!-- category nav (auto) -->
+      <nav id="categoryNav" class="w-full overflow-x-auto hide-scrollbar flex gap-2 pb-2"></nav>
+    </div>
+  </header>
+
+  <!-- main content (auto) -->
+  <main id="mainContent" class="flex-grow max-w-md mx-auto p-4 space-y-8 pb-24"></main>
+
+  <!-- footer -->
+  <footer class="mt-auto bg-brand-surface border-t border-brand-gold/10 py-10 px-6 text-center">
+    <div class="mb-6 opacity-60">
+      <h2 class="font-serif text-xl tracking-[0.2em] text-brand-gold uppercase">tahmisçi</h2>
+      <p class="text-[10px] tracking-[0.4em] text-brand-gold mt-1 uppercase italic">established 1635</p>
+    </div>
+    <p class="text-[10px] text-brand-muted uppercase tracking-widest">© 2024 tahmisçi coffee &amp; roastery</p>
+  </footer>
+
+  <!-- yukari butonu (tek) -->
+  <button id="scrollTopBtn"
+    class="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-brand-gold text-brand-dark shadow-lg shadow-black/40 flex items-center justify-center z-50">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+    </svg>
+  </button>
+
+  <script>
+    const MENU = window.MENU || {};
+    const anaList = Object.keys(MENU);
+
+    const navEl = document.getElementById("categoryNav");
+    const mainEl = document.getElementById("mainContent");
+    // const searchEl = document.getElementById("searchInput");
+    const scrollBtn = document.getElementById("scrollTopBtn");
+
+    const DEFAULT_IMAGE = "./images/logo_green.png";
+    const IMAGES_FOLDER = "./images";
+    const IMAGE_EXT = "jpg";
+
+    const state = { activeAna: "tumu" }; // default tumu
+
+    function slugifyTR(s){
+  return (s || "")
+    .toString()
+    .normalize("NFKD")              // unicode normalize
+    .replace(/\u0307/g, "")         // i̇ -> i (combining dot üstünü sil)
+    .toLowerCase()
+    .trim()
+    .replace(/ç/g,"c").replace(/ğ/g,"g").replace(/ı/g,"i").replace(/ö/g,"o").replace(/ş/g,"s").replace(/ü/g,"u").replace(/Ç/g,"c")
+    .replace(/â/g,"a").replace(/î/g,"i").replace(/û/g,"u")
+    .replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-+|-+$/g,"");
+}
+
+    function getImageUrl(item){
+      if(item && item.img) return item.img;
+      const slug = slugifyTR(item?.name || "");
+      return slug ? `${IMAGES_FOLDER}/${slug}.${IMAGE_EXT}` : DEFAULT_IMAGE;
+    }
+
+    function fmtTl(n){
+      if(n === null || n === undefined || n === "") return "";
+      try { return new Intl.NumberFormat("tr-TR").format(n) + " ₺"; }
+      catch(e){ return n + " TL"; }
+    }
+
+    function shortVariant(productName, variantName){
+      if(!variantName) return "";
+      const p = (productName || "").trim();
+      const v = (variantName || "").trim();
+      return (p && v.toLowerCase().startsWith(p.toLowerCase())) ? v.slice(p.length).trim() : v;
+    }
+
+    function matchesQuery(text){
+      if(!state.q) return true;
+      return (text || "").toLowerCase().includes(state.q);
+    }
+
+    function renderNav(){
+      navEl.innerHTML = "";
+
+      function makeTab(label, key){
+        const a = document.createElement("a");
+        a.href = "#";
+        a.className = "whitespace-nowrap px-6 py-2 rounded-full text-xs font-semibold bg-brand-surface text-brand-muted uppercase tracking-wider";
+        a.textContent = label;
+
+        if(state.activeAna === key){
+          a.classList.add("tab-active");
+          a.classList.remove("bg-brand-surface","text-brand-muted");
+        }
+
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          state.activeAna = key;
+
+          window.scrollTo({ top: 0, behavior: "smooth" });
+
+          renderNav();
+          render();
+        });
+
+        return a;
+      }
+
+      navEl.appendChild(makeTab("tümü", "tumu"));
+      anaList.forEach(ana => navEl.appendChild(makeTab(ana, ana)));
+    }
+
+    function buildProductCard(it){
+      const hasVariants = it.variants && it.variants.length > 0;
+
+      const wrap = document.createElement("div");
+      wrap.className = "space-y-4";
+
+      const top = document.createElement("div");
+      top.className = "flex gap-4 items-center";
+
+      const imgBox = document.createElement("div");
+      imgBox.className = "w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 bg-brand-dark";
+
+      const img = document.createElement("img");
+      img.alt = it.name || "urun";
+      img.className = "w-full h-full object-cover";
+      img.loading = "lazy";
+      img.src = getImageUrl(it);
+      img.onerror = () => { img.onerror = null; img.src = DEFAULT_IMAGE; };
+      imgBox.appendChild(img);
+
+      const txt = document.createElement("div");
+      txt.innerHTML = `
+        <h4 class="font-serif text-lg text-white">${it.name || ""}</h4>
+        ${it.desc ? `<p class="text-xs text-brand-muted leading-relaxed">${it.desc}</p>` : ``}
+      `;
+
+      top.appendChild(imgBox);
+      top.appendChild(txt);
+      wrap.appendChild(top);
+
+      const vWrap = document.createElement("div");
+      vWrap.className = "space-y-1.5";
+
+      if(hasVariants){
+        it.variants.forEach(v => {
+          const row = document.createElement("div");
+          row.className = "flex justify-between items-center bg-brand-card/50 px-4 py-2.5 rounded-xl border border-white/5";
+          row.innerHTML = `
+            <span class="text-sm font-medium text-white/90">${shortVariant(it.name, v.name) || v.name}</span>
+            <span class="text-sm font-bold text-brand-gold">${fmtTl(v.price)}</span>
+          `;
+          vWrap.appendChild(row);
+        });
+      } else if(it.price !== null && it.price !== undefined){
+        const row = document.createElement("div");
+        row.className = "flex justify-between items-center bg-brand-card/50 px-4 py-2.5 rounded-xl border border-white/5";
+        row.innerHTML = `
+          <span class="text-sm font-medium text-white/90 capitalize">standart</span>
+          <span class="text-sm font-bold text-brand-gold">${fmtTl(it.price)}</span>
+        `;
+        vWrap.appendChild(row);
+      }
+
+      if(vWrap.childNodes.length) wrap.appendChild(vWrap);
+      return wrap;
+    }
+
+    function buildAccordion(altName, items){
+      const acc = document.createElement("div");
+      acc.className = "border border-brand-gold/20 rounded-2xl overflow-hidden bg-brand-surface/40 backdrop-blur-sm";
+
+      const btn = document.createElement("button");
+      btn.className = "w-full flex justify-between items-center p-5 text-left";
+      btn.type = "button";
+      btn.innerHTML = `
+        <div>
+          <h3 class="font-serif text-xl text-white">${altName}</h3>
+          <span class="text-xs text-brand-muted">${items.length} ürün</span>
+        </div>
+        <div class="w-8 h-8 rounded-full bg-brand-card flex items-center justify-center border border-white/10">
+          <svg class="w-4 h-4 text-brand-gold transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="m5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </div>
+      `;
+
+      const panel = document.createElement("div");
+      panel.className = "accordion-content border-t border-white/5";
+
+      const inner = document.createElement("div");
+      inner.className = "p-4 space-y-6";
+
+      const filtered = items.filter(it => {
+        const variants = it.variants || [];
+        return matchesQuery(altName) || matchesQuery(it.name) || matchesQuery(it.desc) || variants.some(v => matchesQuery(v.name));
+      });
+
+      if(filtered.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "text-xs text-brand-muted";
+        empty.textContent = "arama sonucunda ürün bulunamadı";
+        inner.appendChild(empty);
+      } else {
+        filtered.forEach((it, idx) => {
+          inner.appendChild(buildProductCard(it));
+          if(idx !== filtered.length - 1){
+            const hr = document.createElement("hr");
+            hr.className = "border-white/5";
+            inner.appendChild(hr);
+          }
+        });
+      }
+
+      panel.appendChild(inner);
+
+      btn.addEventListener("click", () => {
+        acc.classList.toggle("accordion-open");
+        const svg = acc.querySelector("svg");
+        if(svg) svg.style.transform = acc.classList.contains("accordion-open") ? "rotate(0deg)" : "rotate(180deg)";
+      });
+
+      // arama varken otomatik ac
+      if(state.q){
+        acc.classList.add("accordion-open");
+        const svg = acc.querySelector("svg");
+        if(svg) svg.style.transform = "rotate(0deg)";
+      } else {
+        const svg = acc.querySelector("svg");
+        if(svg) svg.style.transform = "rotate(180deg)";
+      }
+
+      acc.appendChild(btn);
+      acc.appendChild(panel);
+      return acc;
+    }
+
+    function render(){
+      mainEl.innerHTML = "";
+
+      const listToRender = (state.activeAna === "tumu")
+        ? anaList
+        : anaList.filter(x => x === state.activeAna);
+
+      listToRender.forEach(ana => {
+        const section = document.createElement("section");
+        section.className = "space-y-4";
+
+        const head = document.createElement("div");
+        head.className = "flex items-center gap-4";
+        head.innerHTML = `
+          <h2 class="font-serif text-3xl italic text-white uppercase tracking-tighter">${ana}</h2>
+          <div class="h-[1px] flex-grow bg-brand-gold/30"></div>
+        `;
+        section.appendChild(head);
+
+        const altObj = MENU[ana] || {};
+        Object.keys(altObj).forEach(altName => {
+          section.appendChild(buildAccordion(altName, altObj[altName] || []));
+        });
+
+        mainEl.appendChild(section);
+      });
+    }
+
+    // search
+    // searchEl.addEventListener("input", (e) => {
+    //   state.q = (e.target.value || "").trim().toLowerCase();
+    //   if(state.q) state.activeAna = "tumu";
+    //   renderNav();
+    //   render();
+    // });
+
+    // scroll top btn
+    window.addEventListener("scroll", () => {
+      if(window.scrollY > 220) scrollBtn.classList.add("show");
+      else scrollBtn.classList.remove("show");
+    });
+
+    scrollBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // init
+    renderNav();
+    render();
+  </script>
+</body>
+</html>
